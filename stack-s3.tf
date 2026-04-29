@@ -5,4 +5,5 @@ resource "aws_s3_bucket" "bucket" {
     ManagedBy   = "${var.ManagedBy}"
     Environment = "${var.ENVIRONMENT}"
   }
+  force_destroy = true
 }
