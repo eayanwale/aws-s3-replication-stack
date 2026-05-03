@@ -1,24 +1,20 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_kms_key" "bucket_key" {
   description             = "KMS key for S3 bucket encryption"
   deletion_window_in_days = 10
 }
 
-resource "aws_s3_bucket" "bucket" {
-  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
-  tags      = {
-    Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-bucket"
-    ManagedBy   = "${var.ManagedBy}"
-    Environment = "${var.ENVIRONMENT}"
-  }
-  force_destroy = true
+resource "aws_s3_bucket" "logging" {
+  bucket = "access-logging-bucket"
 }
 
-resource "aws_s3_bucket_policy" "bucket_policy" {
+resource "aws_s3_bucket_policy" "main_bucket_policy" {
   bucket = aws_s3_bucket.bucket.id
-  policy = data.aws_iam_policy_document.bucket_policy.json
+  policy = data.aws_iam_policy_document.main_bucket_policy.json
 }
 
-data "aws_iam_policy_document" "bucket_policy" {
+data "aws_iam_policy_document" "main_bucket_policy" {
   statement {
     sid    = "AWSCloudTrailAclCheck"
     effect = "Allow"
@@ -71,6 +67,19 @@ data "aws_iam_policy_document" "bucket_policy" {
       values   = [aws_s3_bucket.bucket.arn]
     }
   }
+  statement {
+    principals {
+      identifiers = ["logging.s3.amazonaws.com"]
+      type        = "Service"
+    }
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.logging.arn}/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "public_access" {
@@ -101,6 +110,27 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
     apply_server_side_encryption_by_default {
       sse_algorithm = "aws:kms"
       kms_master_key_id = aws_kms_key.bucket_key.id
+    }
+  }
+}
+
+resource "aws_s3_bucket" "bucket" {
+  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
+  tags      = {
+    Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-bucket"
+    ManagedBy   = "${var.ManagedBy}"
+    Environment = "${var.ENVIRONMENT}"
+  }
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_logging" "bucket" {
+  bucket = aws_s3_bucket.bucket.bucket
+  target_bucket = aws_s3_bucket.logging.bucket
+  target_prefix = "log/"
+  target_object_key_format {
+    partitioned_prefix {
+      partition_date_source = "EventTime"
     }
   }
 }
