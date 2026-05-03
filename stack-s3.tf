@@ -114,6 +114,17 @@ resource "aws_s3_bucket_versioning" "versioning" {
   }
 }
 
+resource "aws_s3_bucket_object_lock_configuration" "object_lock" {
+  bucket = aws_s3_bucket.bucket.id
+
+  rule {
+    default_retention {
+      mode = "COMPLIANCE"
+      days = 5
+    }
+  }
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
   bucket = aws_s3_bucket.bucket.id
 
