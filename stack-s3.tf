@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "bucket" {
-  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-bucket"
+  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
   tags      = {
     Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-bucket"
     ManagedBy   = "${var.ManagedBy}"
@@ -66,5 +66,14 @@ data "aws_iam_policy_document" "bucket_policy" {
       values   = [aws_s3_bucket.bucket.arn]
     }
   }
+}
+
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket = aws_s3_bucket.bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 

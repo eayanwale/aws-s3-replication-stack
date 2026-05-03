@@ -6,6 +6,10 @@ variable "AWS_REGION" {
   default = "us-east-1"
 }
 
+variable "bucket_usage" {
+  type = string
+}
+
 variable "ENVIRONMENT" {
   default = "Development"
 }
