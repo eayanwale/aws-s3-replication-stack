@@ -5,6 +5,16 @@ resource "aws_kms_key" "bucket_key" {
   deletion_window_in_days = 10
 }
 
+resource "aws_s3_bucket" "bucket" {
+  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
+  tags      = {
+    Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-bucket"
+    ManagedBy   = "${var.ManagedBy}"
+    Environment = "${var.ENVIRONMENT}"
+  }
+  force_destroy = true
+}
+
 resource "aws_s3_bucket" "logging" {
   bucket = "access-logging-bucket"
 }
@@ -25,7 +35,6 @@ data "aws_iam_policy_document" "main_bucket_policy" {
     actions   = ["s3:GetBucketAcl"]
     resources = [aws_s3_bucket.bucket.arn]
   }
-
   statement {
     sid    = "AWSCloudTrailWrite"
     effect = "Allow"
@@ -41,7 +50,6 @@ data "aws_iam_policy_document" "main_bucket_policy" {
       values   = ["bucket-owner-full-control"]
     }
   }
-
   statement {
     sid    = "InventoryAndAnalyticsExamplePolicy"
     effect = "Allow"
@@ -54,7 +62,7 @@ data "aws_iam_policy_document" "main_bucket_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
-      values   = ["333333333333"]
+      values   = [data.aws_caller_identity.current.account_id]
     }
     condition {
       test     = "StringEquals"
@@ -67,6 +75,14 @@ data "aws_iam_policy_document" "main_bucket_policy" {
       values   = [aws_s3_bucket.bucket.arn]
     }
   }
+}
+
+resource "aws_s3_bucket_policy" "logging_bucket_policy" {
+  bucket = aws_s3_bucket.logging.id
+  policy = data.aws_iam_policy_document.logging_bucket_policy.json
+}
+
+data "aws_iam_policy_document" "logging_bucket_policy" {
   statement {
     principals {
       identifiers = ["logging.s3.amazonaws.com"]
@@ -86,9 +102,9 @@ resource "aws_s3_bucket_public_access_block" "public_access" {
   bucket = aws_s3_bucket.bucket.id
 
   block_public_acls       = true
-  block_public_policy     = true
+  block_public_policy     = false
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_versioning" "versioning" {
@@ -103,34 +119,31 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "aws:kms"
+      sse_algorithm     = "aws:kms"
       kms_master_key_id = aws_kms_key.bucket_key.id
     }
   }
 }
 
-resource "aws_s3_bucket" "bucket" {
-  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
-  tags      = {
-    Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-bucket"
-    ManagedBy   = "${var.ManagedBy}"
-    Environment = "${var.ENVIRONMENT}"
-  }
-  force_destroy = true
-}
-
 resource "aws_s3_bucket_logging" "bucket" {
-  bucket = aws_s3_bucket.bucket.bucket
+  bucket        = aws_s3_bucket.bucket.bucket
   target_bucket = aws_s3_bucket.logging.bucket
   target_prefix = "log/"
   target_object_key_format {
     partitioned_prefix {
       partition_date_source = "EventTime"
     }
+  }
+}
+
+resource "aws_s3_bucket_website_configuration" "website" {
+  bucket = aws_s3_bucket.bucket.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
   }
 }
