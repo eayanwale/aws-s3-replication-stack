@@ -7,8 +7,8 @@ resource "aws_kms_key" "replica_key" {
 
 resource "aws_s3_bucket" "replica" {
   provider = aws.us-east-2
-  bucket   = "tf-${var.AWS_REGION}-replication-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
-  tags     = {
+  bucket   = "tf-${var.ROLE_NAME}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
+  tags = {
     Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-replication-bucket"
     ManagedBy   = "${var.ManagedBy}"
     Environment = "${var.ENVIRONMENT}"
@@ -41,9 +41,36 @@ resource "aws_s3_bucket_public_access_block" "replica_public_access" {
   bucket   = aws_s3_bucket.replica.id
 
   block_public_acls       = true
-  block_public_policy     = false
+  block_public_policy     = true
   ignore_public_acls      = true
-  restrict_public_buckets = false
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_policy" "replica" {
+  provider = aws.us-east-2
+  bucket   = aws_s3_bucket.replica.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { AWS = aws_iam_role.replica_role.arn }
+        Action = [
+          "s3:ReplicateObject",
+          "s3:ReplicateDelete",
+          "s3:ReplicateTags",
+          "s3:ObjectOwnerOverrideToBucketOwner",
+          "s3:GetBucketVersioning",
+          "s3:PutBucketVersioning"
+        ]
+        Resource = [
+          aws_s3_bucket.replica.arn,
+          "${aws_s3_bucket.replica.arn}/*"
+        ]
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role" "replica_role" {
@@ -92,7 +119,8 @@ resource "aws_iam_policy" "replica" {
         Action = [
           "s3:ReplicateObject",
           "s3:ReplicateDelete",
-          "s3:ReplicateTags"
+          "s3:ReplicateTags",
+          "s3:ObjectOwnerOverrideToBucketOwner"
         ]
         Resource = ["${aws_s3_bucket.replica.arn}/*"]
       },
@@ -118,10 +146,10 @@ resource "aws_iam_role_policy_attachment" "replication_attachment" {
 }
 
 resource "aws_s3_bucket_replication_configuration" "replication_config" {
-  depends_on = [aws_iam_role_policy_attachment.replication_attachment]
-  
+  depends_on = [aws_s3_bucket_versioning.versioning]
+
   bucket = aws_s3_bucket.bucket.id
-  role = aws_iam_role.replica_role.arn
+  role   = aws_iam_role.replica_role.arn
 
   rule {
     id     = "replication-rule-1"
@@ -132,8 +160,20 @@ resource "aws_s3_bucket_replication_configuration" "replication_config" {
     destination {
       bucket        = aws_s3_bucket.replica.arn
       storage_class = "STANDARD"
+      account       = var.REPLICA_ACCOUNT_ID
+
       access_control_translation {
         owner = "Destination"
+      }
+
+      encryption_configuration {
+        replica_kms_key_id = aws_kms_key.replica_key.arn
+      }
+    }
+
+    source_selection_criteria {
+      sse_kms_encrypted_objects {
+        status = "Enabled"
       }
     }
   }

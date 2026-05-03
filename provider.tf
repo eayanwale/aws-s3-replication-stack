@@ -11,6 +11,6 @@ provider "aws" {
   region = "us-east-2"
 
   assume_role {
-    role_arn = "arn:aws:iam::${var.ACCOUNT_ID}:role/${var.ROLE_NAME}"
+    role_arn = "arn:aws:iam::${var.REPLICA_ACCOUNT_ID}:role/${var.REPLICA_ROLE_NAME}"
   }
 }
