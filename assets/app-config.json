@@ -1,0 +1,6 @@
+{
+  "app_name": "my-s3-app",
+  "version": "1.0.0",
+  "region": "us-east-1",
+  "debug": false
+}

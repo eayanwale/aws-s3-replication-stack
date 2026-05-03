@@ -1,0 +1,4 @@
+id,name,category,value
+1,item-a,config,100
+2,item-b,config,200
+3,item-c,reference,300
