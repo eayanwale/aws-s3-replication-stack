@@ -6,6 +6,12 @@ variable "AWS_REGION" {
   default = "us-east-1"
 }
 
+variable "REPLICA_ACCOUNT_ID" {}
+
+variable "REPLICA_ROLE_NAME" {
+  default = "Engineer"
+}
+
 variable "bucket_usage" {
   type = string
 }

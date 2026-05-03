@@ -6,7 +6,7 @@ resource "aws_kms_key" "bucket_key" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket    = "tf-${var.AWS_REGION}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
+  bucket    = "tf-${var.ROLE_NAME}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
   tags      = {
     Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-bucket"
     ManagedBy   = "${var.ManagedBy}"
