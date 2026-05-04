@@ -1,59 +1,35 @@
 data "aws_iam_policy_document" "main_bucket_policy" {
   statement {
-    sid    = "AWSCloudTrailAclCheck"
-    effect = "Allow"
     principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com"]
+      type        = "*"
+      identifiers = ["*"]
     }
-    actions   = ["s3:GetBucketAcl"]
-    resources = [aws_s3_bucket.bucket.arn]
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.bucket.arn}/*"]
+  }
+
+  statement {
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.REPLICA_ACCOUNT_ID}:root"]
+    }
+    actions   = ["s3:GetObjectVersion", "s3:GetObjectVersionAcl", "s3:GetObjectVersionTagging"]
+    resources = ["${aws_s3_bucket.bucket.arn}/*"]
   }
   statement {
-    sid    = "AWSCloudTrailWrite"
-    effect = "Allow"
     principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com"]
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.REPLICA_ACCOUNT_ID}:role/${var.REPLICA_ROLE_NAME}"]
     }
-    actions   = ["s3:PutObject"]
+    actions   = ["s3:ReplicateObject", "s3:ReplicateDelete", "s3:ReplicateTags", "s3:ObjectOwnerOverrideToBucketOwner"]
     resources = ["${aws_s3_bucket.bucket.arn}/*"]
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
-    }
-  }
-  statement {
-    sid    = "InventoryAndAnalyticsExamplePolicy"
-    effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["s3.amazonaws.com"]
-    }
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.bucket.arn}/*"]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [data.aws_caller_identity.current.account_id]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
-    }
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = [aws_s3_bucket.bucket.arn]
-    }
   }
 }
 
 resource "aws_s3_bucket_policy" "main_bucket_policy" {
-  bucket = aws_s3_bucket.bucket.id
-  policy = data.aws_iam_policy_document.main_bucket_policy.json
+  bucket     = aws_s3_bucket.bucket.id
+  policy     = data.aws_iam_policy_document.main_bucket_policy.json
+  depends_on = [aws_s3_bucket_public_access_block.public_access]
 }
 
 data "aws_iam_policy_document" "logging_bucket_policy" {
