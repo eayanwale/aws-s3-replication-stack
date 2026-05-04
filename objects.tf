@@ -1,39 +1,31 @@
-resource "aws_s3_object" "index" {
-  bucket       = aws_s3_bucket.bucket.id
-  key          = "index.html"
-  source       = "${path.module}/assets/index.html"
-  content_type = "text/html"
-  kms_key_id   = aws_kms_key.bucket_key.arn
-  metadata     = { environment = var.ENVIRONMENT }
-  etag         = filemd5("${path.module}/assets/index.html")
+locals {
+  static_objects = {
+    "static/app-config.json"    = "application/json"
+    "static/reference.csv"      = "text/csv"
+  }
+  public_objects = {
+    "index.html" = "text/html"
+    "error.html" = "text/html"
+  }
 }
 
-resource "aws_s3_object" "error" {
+resource "aws_s3_object" "public" {
+  for_each     = local.public_objects
   bucket       = aws_s3_bucket.bucket.id
-  key          = "error.html"
-  source       = "${path.module}/assets/error.html"
-  content_type = "text/html"
-  kms_key_id   = aws_kms_key.bucket_key.arn
-  metadata     = { environment = var.ENVIRONMENT }
-  etag         = filemd5("${path.module}/assets/error.html")
+  key          = each.key
+  source       = "${path.module}/assets/public/${each.key}"
+  content_type = each.value
+  source_hash  = filemd5("${path.module}/assets/public/${each.key}")
 }
 
-resource "aws_s3_object" "config" {
+resource "aws_s3_object" "static" {
+  for_each     = local.static_objects
   bucket       = aws_s3_bucket.bucket.id
-  key          = "config/app-config.json"
-  source       = "${path.module}/assets/app-config.json"
-  content_type = "application/json"
-  kms_key_id   = aws_kms_key.bucket_key.arn
-  metadata     = { environment = var.ENVIRONMENT }
-  etag         = filemd5("${path.module}/assets/app-config.json")
-}
-
-resource "aws_s3_object" "reference_data" {
-  bucket       = aws_s3_bucket.bucket.id
-  key          = "data/reference.csv"
-  source       = "${path.module}/assets/reference.csv"
-  content_type = "text/csv"
-  kms_key_id   = aws_kms_key.bucket_key.arn
-  metadata     = { environment = var.ENVIRONMENT }
-  etag         = filemd5("${path.module}/assets/reference.csv")
+  key          = each.key
+  source       = "${path.module}/assets/${each.key}"
+  content_type = each.value
+  source_hash  = filemd5("${path.module}/assets/${each.key}")
+  #etag = filemd5("${path.module}/assets/index.html")
+  # ETAG uses MD5 hash. Cannot be used here as our buxkets, and objects are KMS encrypted
+    # KMS does not use MD5 hash so ETAG here is useless
 }
