@@ -1,5 +1,9 @@
 resource "aws_s3_bucket" "cloudtrail_logs" {
-  bucket        = "tf-${var.ROLE_NAME}-${var.RUNNER}-${var.ORGANIZATION}-cloudtrail-logs"
+  bucket        = "tf-${var.RUNNER}-${var.ORGANIZATION}-cloudtrail-logs"
+    tags = {
+    Name        = "${var.ManagedBy}-${var.ORGANIZATION}-cloudtrail-logs-bucket"
+    Purpose     = "cloudtrail-logs"
+  }
   force_destroy = true
 }
 
@@ -41,6 +45,7 @@ resource "aws_cloudtrail" "s3_data_events" {
   name                       = "s3-object-level-trail"
   s3_bucket_name             = aws_s3_bucket.cloudtrail_logs.id
   enable_log_file_validation = true
+  is_multi_region_trail = true
 
   advanced_event_selector {
     name = "Log S3 object-level data events"

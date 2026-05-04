@@ -7,11 +7,10 @@ resource "aws_kms_key" "replica_key" {
 
 resource "aws_s3_bucket" "replica" {
   provider = aws.us-east-2
-  bucket   = "tf-${var.ROLE_NAME}-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-bucket"
+  bucket   = "tf-${var.RUNNER}-${var.ORGANIZATION}-${var.bucket_usage}-replica"
   tags = {
     Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-replication-bucket"
-    ManagedBy   = "${var.ManagedBy}"
-    Environment = "${var.ENVIRONMENT}"
+    Purpose     = "S3 replication destination bucket"
   }
   force_destroy = true
 }
@@ -146,7 +145,7 @@ resource "aws_iam_role_policy_attachment" "replication_attachment" {
 }
 
 resource "aws_s3_bucket_replication_configuration" "replication_config" {
-  depends_on = [aws_s3_bucket_versioning.versioning]
+  depends_on = [aws_s3_bucket_versioning.versioning, aws_s3_bucket_versioning.replica_versioning]
 
   bucket = aws_s3_bucket.bucket.id
   role   = aws_iam_role.replica_role.arn
@@ -156,6 +155,10 @@ resource "aws_s3_bucket_replication_configuration" "replication_config" {
     status = "Enabled"
 
     filter {}
+
+    delete_marker_replication {
+      status = "Enabled"
+    }
 
     destination {
       bucket        = aws_s3_bucket.replica.arn
