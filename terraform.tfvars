@@ -1,4 +1,6 @@
 AWS_REGION  = "us-east-1"
-ROLE_NAME = "Engineer"
 ACCOUNT_ID = "222222222222"
-ENVIRONMENT = "Development"
+REPLICA_ACCOUNT_ID = "777777777777"
+RUNNER = "enoch"
+ORGANIZATION = "stackit"
+ROLE_NAME = "Engineer"

@@ -1,12 +1,14 @@
 variable "ACCOUNT_ID" {
-  default = "222222222222"
+  type = string
+}
+
+variable "REPLICA_ACCOUNT_ID" {
+  type = string
 }
 
 variable "AWS_REGION" {
   default = "us-east-1"
 }
-
-variable "REPLICA_ACCOUNT_ID" {}
 
 variable "REPLICA_ROLE_NAME" {
   default = "Engineer"
@@ -14,6 +16,7 @@ variable "REPLICA_ROLE_NAME" {
 
 variable "bucket_usage" {
   type = string
+  default = "general"
 }
 
 variable "ENVIRONMENT" {
@@ -21,11 +24,11 @@ variable "ENVIRONMENT" {
 }
 
 variable "ROLE_NAME" {
-  default = "Engineer"
+  type = string
 }
 
 variable "RUNNER" {
-  default = "enoch"
+  type = string
 }
 
 variable "ManagedBy" {
@@ -33,22 +36,6 @@ variable "ManagedBy" {
 }
 
 variable "ORGANIZATION" {
-  default = "stackit"
+  type = string
 }
 
-variable "PATH_TO_PRIVATE_KEY" {
-  default = "mykey"
-}
-
-variable "PATH_TO_PUBLIC_KEY" {
-  default = "mykey.pub"
-}
-
-variable "AMIS" {
-  type = map(string)
-  default = {
-    us-east-1 = "ami-08f3d892de259504d"
-    us-west-2 = "ami-06b94666"
-    eu-west-1 = "ami-844e0bf7"
-  }
-}
