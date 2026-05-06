@@ -7,23 +7,6 @@ data "aws_iam_policy_document" "main_bucket_policy" {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.bucket.arn}/*"]
   }
-
-  statement {
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${var.REPLICA_ACCOUNT_ID}:root"]
-    }
-    actions   = ["s3:GetObjectVersion", "s3:GetObjectVersionAcl", "s3:GetObjectVersionTagging"]
-    resources = ["${aws_s3_bucket.bucket.arn}/*"]
-  }
-  statement {
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${var.REPLICA_ACCOUNT_ID}:role/${var.REPLICA_ROLE_NAME}"]
-    }
-    actions   = ["s3:ReplicateObject", "s3:ReplicateDelete", "s3:ReplicateTags", "s3:ObjectOwnerOverrideToBucketOwner"]
-    resources = ["${aws_s3_bucket.bucket.arn}/*"]
-  }
 }
 
 resource "aws_s3_bucket_policy" "main_bucket_policy" {

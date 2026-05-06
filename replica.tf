@@ -3,6 +3,36 @@ resource "aws_kms_key" "replica_key" {
   provider                = aws.us-east-2
   description             = "KMS key for S3 bucket replication"
   deletion_window_in_days = 10
+  enable_key_rotation     = true
+}
+
+resource "aws_kms_key_policy" "replica_key" {
+  provider = aws.us-east-2
+  key_id   = aws_kms_key.replica_key.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "EnableReplicaAccountAccess"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${var.REPLICA_ACCOUNT_ID}:root" }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid       = "AllowSourceReplicationRoleEncrypt"
+        Effect    = "Allow"
+        Principal = { AWS = aws_iam_role.replica_role.arn }
+        Action = [
+          "kms:Encrypt",
+          "kms:GenerateDataKey",
+          "kms:ReEncrypt*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_s3_bucket" "replica" {
@@ -12,7 +42,8 @@ resource "aws_s3_bucket" "replica" {
     Name        = "${var.ManagedBy}-${var.ORGANIZATION}-s3-replication-bucket"
     Purpose     = "S3 replication destination bucket"
   }
-  force_destroy = true
+  object_lock_enabled = true
+  force_destroy       = true
 }
 
 resource "aws_s3_bucket_versioning" "replica_versioning" {
@@ -53,20 +84,23 @@ resource "aws_s3_bucket_policy" "replica" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid       = "AllowSourceReplicationRoleWrite"
         Effect    = "Allow"
         Principal = { AWS = aws_iam_role.replica_role.arn }
         Action = [
           "s3:ReplicateObject",
           "s3:ReplicateDelete",
           "s3:ReplicateTags",
-          "s3:ObjectOwnerOverrideToBucketOwner",
-          "s3:GetBucketVersioning",
-          "s3:PutBucketVersioning"
+          "s3:ObjectOwnerOverrideToBucketOwner"
         ]
-        Resource = [
-          aws_s3_bucket.replica.arn,
-          "${aws_s3_bucket.replica.arn}/*"
-        ]
+        Resource = ["${aws_s3_bucket.replica.arn}/*"]
+      },
+      {
+        Sid       = "AllowSourceReplicationRoleListVersioning"
+        Effect    = "Allow"
+        Principal = { AWS = aws_iam_role.replica_role.arn }
+        Action    = ["s3:GetBucketVersioning", "s3:List*"]
+        Resource  = [aws_s3_bucket.replica.arn]
       }
     ]
   })
@@ -108,7 +142,9 @@ resource "aws_iam_policy" "replica" {
         Action = [
           "s3:GetObjectVersionForReplication",
           "s3:GetObjectVersionAcl",
-          "s3:GetObjectVersionTagging"
+          "s3:GetObjectVersionTagging",
+          "s3:GetObjectRetention",
+          "s3:GetObjectLegalHold"
         ]
         Resource = ["${aws_s3_bucket.bucket.arn}/*"]
       },
@@ -126,13 +162,18 @@ resource "aws_iam_policy" "replica" {
       {
         Sid      = "AllowSourceKMSDecrypt"
         Effect   = "Allow"
-        Action   = ["kms:Decrypt"]
+        Action   = ["kms:Decrypt", "kms:DescribeKey"]
         Resource = [aws_kms_key.bucket_key.arn]
       },
       {
-        Sid      = "AllowReplicaKMSEncrypt"
-        Effect   = "Allow"
-        Action   = ["kms:GenerateDataKey"]
+        Sid    = "AllowReplicaKMSEncrypt"
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt",
+          "kms:GenerateDataKey",
+          "kms:ReEncrypt*",
+          "kms:DescribeKey"
+        ]
         Resource = [aws_kms_key.replica_key.arn]
       }
     ]
@@ -171,12 +212,6 @@ resource "aws_s3_bucket_replication_configuration" "replication_config" {
 
       encryption_configuration {
         replica_kms_key_id = aws_kms_key.replica_key.arn
-      }
-    }
-
-    source_selection_criteria {
-      sse_kms_encrypted_objects {
-        status = "Enabled"
       }
     }
   }
