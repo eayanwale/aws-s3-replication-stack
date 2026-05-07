@@ -1,6 +1,5 @@
 # outputs.tf
 
-# Main bucket — primary consumer interface
 output "bucket_id" {
   description = "Name of the main S3 bucket"
   value       = aws_s3_bucket.bucket.id

@@ -19,7 +19,7 @@ resource "aws_kms_key_policy" "bucket_key" {
       {
         Sid       = "AllowReplicationRoleDecrypt"
         Effect    = "Allow"
-        Principal = { AWS = aws_iam_role.replica_role.arn }
+        Principal = { AWS = aws_iam_role.replication_role.arn }
         Action    = ["kms:Decrypt", "kms:DescribeKey"]
         Resource  = "*"
       }
