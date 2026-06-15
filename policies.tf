@@ -1,20 +1,3 @@
-data "aws_iam_policy_document" "main_bucket_policy" {
-  statement {
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.bucket.arn}/*"]
-  }
-}
-
-resource "aws_s3_bucket_policy" "main_bucket_policy" {
-  bucket     = aws_s3_bucket.bucket.id
-  policy     = data.aws_iam_policy_document.main_bucket_policy.json
-  depends_on = [aws_s3_bucket_public_access_block.public_access]
-}
-
 data "aws_iam_policy_document" "logging_bucket_policy" {
   statement {
     principals {

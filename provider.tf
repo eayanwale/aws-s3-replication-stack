@@ -28,9 +28,9 @@ provider "aws" {
 
   default_tags {
     tags = {
-      ManagedBy   = "${var.ManagedBy}"
-      Environment = "${var.ENVIRONMENT}"
-      CreatedBy   = "${var.RUNNER}"
+      ManagedBy    = "${var.ManagedBy}"
+      Environment  = "${var.ENVIRONMENT}"
+      CreatedBy    = "${var.RUNNER}"
       Organization = "${var.ORGANIZATION}"
     }
   }
@@ -46,9 +46,9 @@ provider "aws" {
 
   default_tags {
     tags = {
-      ManagedBy   = "${var.ManagedBy}"
-      Environment = "${var.ENVIRONMENT}"
-      CreatedBy   = "${var.RUNNER}"
+      ManagedBy    = "${var.ManagedBy}"
+      Environment  = "${var.ENVIRONMENT}"
+      CreatedBy    = "${var.RUNNER}"
       Organization = "${var.ORGANIZATION}"
     }
   }

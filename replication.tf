@@ -53,25 +53,6 @@ resource "aws_iam_policy" "replication_policy" {
           "${aws_s3_bucket.region_replication_bucket.arn}/*",
           "${aws_s3_bucket.account_replication_bucket.arn}/*"
         ]
-      },
-      {
-        Sid      = "AllowSourceKMSDecrypt"
-        Effect   = "Allow"
-        Action   = ["kms:Decrypt", "kms:DescribeKey"]
-        Resource = [aws_kms_key.bucket_key.arn]
-      },
-      {
-        Sid    = "AllowReplicaKMSEncrypt"
-        Effect = "Allow"
-        Action = [
-          "kms:Encrypt",
-          "kms:GenerateDataKey",
-          "kms:ReEncrypt*",
-          "kms:DescribeKey"
-        ]
-        Resource = [
-          aws_kms_key.region_replication_key.arn
-        ]
       }
     ]
   })
@@ -83,25 +64,19 @@ resource "aws_iam_role_policy_attachment" "replication_attachment" {
 }
 
 resource "aws_s3_bucket_replication_configuration" "replication_config" {
-  depends_on = [
-    aws_s3_bucket_versioning.versioning, 
-    aws_s3_bucket_versioning.region_replication_versioning,
-    aws_s3_bucket_versioning.account_replication_versioning,
-    aws_kms_key.bucket_key,
-    aws_kms_key.region_replication_key,
-    aws_kms_key_policy.bucket_key,
-    aws_kms_key_policy.region_replication_key,
-    aws_s3_bucket_policy.region_replication_policy,
-    aws_s3_bucket_policy.account_replication_policy
-  ]
-
   bucket = aws_s3_bucket.bucket.id
   role   = aws_iam_role.replication_role.arn
 
+  depends_on = [
+    aws_s3_bucket_versioning.versioning,
+    aws_s3_bucket_versioning.region_replication_versioning,
+    aws_s3_bucket_versioning.account_replication_versioning,
+  ]
+
   rule {
-    id     = "replication-rule-1"
+    id       = "replication-rule-1"
     priority = 1
-    status = "Enabled"
+    status   = "Enabled"
 
     filter {}
 
@@ -109,26 +84,16 @@ resource "aws_s3_bucket_replication_configuration" "replication_config" {
       status = "Enabled"
     }
 
-    source_selection_criteria {
-      sse_kms_encrypted_objects {
-        status = "Enabled"
-      }
-    }
-
     destination {
       bucket        = aws_s3_bucket.region_replication_bucket.arn
       storage_class = "STANDARD"
-
-      encryption_configuration {
-        replica_kms_key_id = aws_kms_key.region_replication_key.arn
-      }
     }
   }
 
-    rule {
-    id     = "replication-rule-2"
+  rule {
+    id       = "replication-rule-2"
     priority = 2
-    status = "Enabled"
+    status   = "Enabled"
 
     filter {}
 
