@@ -24,7 +24,7 @@ Bucket naming: `tf-{RUNNER}-{ORGANIZATION}-{bucket_usage}-bucket` for the main b
 
 ---
 
-## Providers ([provider.tf](../provider.tf))
+## Providers ([provider.tf](provider.tf))
 
 Three AWS providers, all assuming an IAM role:
 
@@ -40,25 +40,25 @@ Default tags are applied at the provider level so every resource inherits `Manag
 
 ## Buckets
 
-### Main Bucket ([main.tf](../main.tf))
+### Main Bucket ([main.tf](main.tf))
 
-The primary storage bucket. `object_lock_enabled = true` is set at creation — this can only be enabled at bucket creation time, not after. It's the prerequisite for the GOVERNANCE retention policy in [security.tf](../security.tf).
+The primary storage bucket. `object_lock_enabled = true` is set at creation — this can only be enabled at bucket creation time, not after. It's the prerequisite for the GOVERNANCE retention policy in [security.tf](security.tf).
 
-### Logging Bucket ([main.tf](../main.tf))
+### Logging Bucket ([main.tf](main.tf))
 
 A dedicated bucket for S3 server access logs. Keeping logs in a separate bucket means log writes don't appear in the logs themselves, and the logging bucket can have its own independent access controls.
 
-### Region Replica Bucket ([replica_region.tf](../replica_region.tf))
+### Region Replica Bucket ([replica_region.tf](replica_region.tf))
 
 Lives in `us-east-2` under the same account. Has versioning enabled (required for replication) and the same public-access block as the main bucket. No bucket policy needed — same-account replication uses the source's IAM role permissions.
 
-### Account Replica Bucket ([replica_account.tf](../replica_account.tf))
+### Account Replica Bucket ([replica_account.tf](replica_account.tf))
 
 Lives in a separate AWS account. Has versioning, SSE-S3 encryption, and a public-access block. Unlike the region replica, this bucket **does** need a bucket policy granting the source account's replication role write permissions — cross-account access requires an explicit grant on the destination side.
 
 ---
 
-## Security Controls ([security.tf](../security.tf))
+## Security Controls ([security.tf](security.tf))
 
 ### Public Access Block
 
@@ -93,7 +93,7 @@ This choice keeps replication simple: no per-region/per-account KMS keys to prov
 
 ---
 
-## Lifecycle Management ([lifecycle.tf](../lifecycle.tf))
+## Lifecycle Management ([lifecycle.tf](lifecycle.tf))
 
 Two rules on the main bucket:
 
@@ -102,7 +102,7 @@ Two rules on the main bucket:
 
 ---
 
-## Access Logging ([logging.tf](../logging.tf))
+## Access Logging ([logging.tf](logging.tf))
 
 S3 server access logging writes a record of every request to the main bucket into the logging bucket under the `log/` prefix. Records include requester, operation, object key, response status, and bytes transferred.
 
@@ -110,7 +110,7 @@ S3 server access logging writes a record of every request to the main bucket int
 
 ---
 
-## Bucket Policies ([policies.tf](../policies.tf))
+## Bucket Policies ([policies.tf](policies.tf))
 
 Only one bucket policy lives here now: the logging bucket grants `logging.s3.amazonaws.com` write access, scoped to the current account via the `aws:SourceAccount` condition. This prevents log delivery from any other account being accepted.
 
@@ -120,9 +120,9 @@ The main bucket has **no** bucket policy — the IAM role assumed by the provide
 
 ## Replication
 
-Three files implement replication: the IAM role and rules ([replication.tf](../replication.tf)), the destination bucket in `us-east-2` ([replica_region.tf](../replica_region.tf)), and the destination bucket in a separate account ([replica_account.tf](../replica_account.tf)).
+Three files implement replication: the IAM role and rules ([replication.tf](replication.tf)), the destination bucket in `us-east-2` ([replica_region.tf](replica_region.tf)), and the destination bucket in a separate account ([replica_account.tf](replica_account.tf)).
 
-### IAM Role ([replication.tf](../replication.tf))
+### IAM Role ([replication.tf](replication.tf))
 
 A single role (`{ORGANIZATION}-s3-replication-role`) trusted by `s3.amazonaws.com`, with a three-statement policy:
 
@@ -149,7 +149,7 @@ Both rules have `delete_marker_replication` enabled so deletions in the source a
 
 ---
 
-## Variables ([vars.tf](../vars.tf), [terraform.tfvars](../terraform.tfvars))
+## Variables ([vars.tf](vars.tf), [terraform.tfvars](terraform.tfvars))
 
 | Variable | Default | Notes |
 |---|---|---|
